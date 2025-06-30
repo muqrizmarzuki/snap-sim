@@ -25,3 +25,7 @@ RUN echo "upload_max_filesize=100M" > /usr/local/etc/php/conf.d/uploads.ini \
 
 # Set folder permission (for development use only — adjust for production)
 RUN chmod -R 777 /var/www/app
+
+RUN mkdir -p /var/www/app/storage /var/www/app/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache \
+    && chmod -R 777 /var/www/app/storage /var/www/app/bootstrap/cache
