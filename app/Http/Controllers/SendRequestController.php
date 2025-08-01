@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Carbon;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -63,7 +63,7 @@ class SendRequestController extends Controller
                 'X-TIMESTAMP' => $timestamp,
                 'X-SIGNATURE' => $signature,
                 'CHANNEL-ID' => '95221',
-                'X-PARTNER-ID' => '123456',
+                'X-PARTNER-ID' => 'muqriz_Dev',
                 'X-EXTERNAL-ID' => Carbon::now()->timestamp * 1000,
             ])->post($validated['url'], $validated['body']);
 
