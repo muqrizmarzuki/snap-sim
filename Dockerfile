@@ -1,31 +1,40 @@
 FROM php:8.3-fpm
 
-WORKDIR /var/www/app
-
-# Install system dependencies required for Laravel
+# Install System Dependencies
 RUN apt-get update && apt-get install -y \
-    curl \
+    nginx \
+    supervisor \
+    libpng-dev \
+    libzip-dev \
     zip \
     unzip \
     git \
-    libzip-dev \
-    libonig-dev \
-    libxml2-dev \
-    && docker-php-ext-install pdo pdo_mysql zip mbstring xml \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    libpq-dev \
+    curl \
+    gnupg
 
-# Copy Composer from official Composer image
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+# Install PHP Extensions
+RUN docker-php-ext-install -j$(nproc) pdo_mysql bcmath zip pcntl posix sockets
+RUN pecl install redis && docker-php-ext-enable redis
 
-# PHP configuration tweaks
-RUN echo "upload_max_filesize=100M" > /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "post_max_size=100M" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/uploads.ini
+# Configure Nginx and Supervisor
+RUN mkdir -p /var/log/supervisor /run/nginx
+COPY docker/conf.d/nginx.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Set folder permission (for development use only — adjust for production)
-RUN chmod -R 777 /var/www/app
+COPY docker/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-RUN mkdir -p /var/www/app/storage /var/www/app/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache \
-    && chmod -R 777 /var/www/app/storage /var/www/app/bootstrap/cache
+
+# Set Working Directory
+WORKDIR /var/www
+COPY . /var/www
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Fix Permissions (Ubuntu uses www-data:www-data as well)
+RUN chown -R www-data:www-data /var/www && \
+    chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
